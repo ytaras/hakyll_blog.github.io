@@ -1,3 +1,6 @@
 php_flag engine of
-RewriteEngine On
-RewriteRule ^(.*)$ http://ythakyll.heroku.com/_site/$1 [L]
+
+RewriteEngine on
+RewriteCond %{HTTP_HOST} ^ythakyll.heroku.com$ [NC,OR]
+RewriteCond %{REQUEST_URI} !_site/
+RewriteRule (.*) /_site/$1 [L]
