@@ -1,1 +1,3 @@
-php_flag engine off
+php_flag engine of
+RewriteEngine On
+RewriteRule ^(.*)$ http://ythakyll.heroku.com/_site/$1
