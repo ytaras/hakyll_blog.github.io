@@ -6,7 +6,7 @@ import           Hakyll
 
 --------------------------------------------------------------------------------
 main :: IO ()
-main = hakyll $ do
+main = hakyllWith ytConfiguration $ do
     tags <- buildTags "posts/*" $ fromCapture "tags/*.html"
     match "images/*" $ do
         route   idRoute
@@ -117,4 +117,8 @@ feedConfiguration = FeedConfiguration
   , feedAuthorName = "Yura Taras"
   , feedAuthorEmail = "yura.taras@gmail.com"
   , feedRoot = "http://ythakyll.herokuapp.com/"
+  }
+
+ytConfiguration = defaultConfiguration
+  { deployCommand = "./publish.sh"
   }
