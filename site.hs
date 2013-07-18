@@ -23,14 +23,14 @@ main = hakyll $ do
             >>= relativizeUrls
 
     tagsRules tags $ \tag pattern -> do
-        let title = "Posts tagged '" ++ tag ++ "'"
+        let title = "Публікації з тегом '" ++ tag ++ "'"
         route idRoute
         compile $ do
-            list <- postList tags pattern recentFirst
+            posts <- recentFirst =<< loadAll pattern
             makeItem ""
-                >>= loadAndApplyTemplate "templates/tags.html"
+                >>= loadAndApplyTemplate "templates/post-list.html"
                         (constField "title" title `mappend`
-                         constField "posts"  list `mappend`
+                         listField "posts" (tagsCtx tags) (return posts) `mappend`
                          defaultContext)
                 >>= loadAndApplyTemplate "templates/default.html"
                         (constField "title" title `mappend`
@@ -86,8 +86,8 @@ tagsCtx tags =
   tagsField "prettytags" tags `mappend`
   postCtx
 
---postList :: Tags -> Pattern -> ([Item String] -> Compiler [Item String])
---         -> Compiler String
+postList :: Tags -> Pattern -> ([Item String] -> Compiler [Item String])
+         -> Compiler String
 postList tags pattern preprocess' = do
     postItemTpl <- loadBody "templates/post.html"
     posts <- preprocess' =<< loadAll pattern
