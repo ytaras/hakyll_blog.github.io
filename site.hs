@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 {-# LANGUAGE OverloadedStrings #-}
-import           Data.Monoid (mappend)
+import           Data.Monoid (mappend, mconcat)
 import           Hakyll
 
 
@@ -41,6 +41,9 @@ main = hakyll $ do
         route $ setExtension "html"
         compile $ pandocCompiler
             >>= loadAndApplyTemplate "templates/post.html"    (tagsCtx tags)
+            -- TODO Make URLs external here
+            -- TODO Make sure Disqus comments don't appear in feed text
+            >>= saveSnapshot "content"
             >>= loadAndApplyTemplate "templates/default.html" postCtx
             >>= relativizeUrls
 
@@ -58,6 +61,12 @@ main = hakyll $ do
                 >>= loadAndApplyTemplate "templates/default.html" archiveCtx
                 >>= relativizeUrls
 
+    create ["rss.xml"] $ do
+      route idRoute
+      compile $ do
+        loadAllSnapshots "posts/*" "content"
+        >>= recentFirst
+        >>= renderRss feedConfiguration feedCtx
 
     match "index.html" $ do
         route idRoute
@@ -77,14 +86,22 @@ main = hakyll $ do
 
 --------------------------------------------------------------------------------
 postCtx :: Context String
-postCtx =
-    dateField "date" "%B %e, %Y" `mappend`
-    defaultContext
+postCtx = mconcat
+    [ dateField "date" "%B %e, %Y"
+    , defaultContext
+    ]
 
 tagsCtx :: Tags -> Context String
-tagsCtx tags =
-  tagsField "prettytags" tags `mappend`
-  postCtx
+tagsCtx tags = mconcat
+  [ tagsField "prettytags" tags
+  , postCtx
+  ]
+
+feedCtx :: Context String
+feedCtx = mconcat
+ [ bodyField "description"
+ , postCtx
+ ]
 
 postList :: Tags -> Pattern -> ([Item String] -> Compiler [Item String])
          -> Compiler String
@@ -92,3 +109,12 @@ postList tags pattern preprocess' = do
     postItemTpl <- loadBody "templates/post.html"
     posts <- preprocess' =<< loadAll pattern
     applyTemplateList postItemTpl (tagsCtx tags) posts
+
+feedConfiguration :: FeedConfiguration
+feedConfiguration = FeedConfiguration
+  {feedTitle = "Lviv FP User group"
+  , feedDescription = "Блог львівської групи користувачів функціонального програмування"
+  , feedAuthorName = "Yura Taras"
+  , feedAuthorEmail = "yura.taras@gmail.com"
+  , feedRoot = "http://ythakyll.herokuapp.com/"
+  }
