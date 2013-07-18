@@ -7,6 +7,7 @@ import           Hakyll
 --------------------------------------------------------------------------------
 main :: IO ()
 main = hakyll $ do
+    tags <- buildTags "posts/*" $ fromCapture "tags/*.html"
     match "images/*" $ do
         route   idRoute
         compile copyFileCompiler
@@ -21,10 +22,25 @@ main = hakyll $ do
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
             >>= relativizeUrls
 
+    tagsRules tags $ \tag pattern -> do
+        let title = "Posts tagged '" ++ tag ++ "'"
+        route idRoute
+        compile $ do
+            list <- postList tags pattern recentFirst
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/tags.html"
+                        (constField "title" title `mappend`
+                         constField "posts"  list `mappend`
+                         defaultContext)
+                >>= loadAndApplyTemplate "templates/default.html"
+                        (constField "title" title `mappend`
+                         defaultContext)
+                >>= relativizeUrls
+
     match "posts/*" $ do
         route $ setExtension "html"
         compile $ pandocCompiler
-            >>= loadAndApplyTemplate "templates/post.html"    postCtx
+            >>= loadAndApplyTemplate "templates/post.html"    (tagsCtx tags)
             >>= loadAndApplyTemplate "templates/default.html" postCtx
             >>= relativizeUrls
 
@@ -64,3 +80,15 @@ postCtx :: Context String
 postCtx =
     dateField "date" "%B %e, %Y" `mappend`
     defaultContext
+
+tagsCtx :: Tags -> Context String
+tagsCtx tags =
+  tagsField "prettytags" tags `mappend`
+  postCtx
+
+--postList :: Tags -> Pattern -> ([Item String] -> Compiler [Item String])
+--         -> Compiler String
+postList tags pattern preprocess' = do
+    postItemTpl <- loadBody "templates/post.html"
+    posts <- preprocess' =<< loadAll pattern
+    applyTemplateList postItemTpl (tagsCtx tags) posts
